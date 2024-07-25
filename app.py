@@ -12,16 +12,12 @@ import logging
 
 app = Flask(__name__)
 
-# Setup logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Define constants
 N_STEPS = 7
 
-# Load the model
 model = load_model('stock_predict_model.h5')
 
-# Initialize scaler
 scaler = MinMaxScaler()
 
 def prepare_data(df, n_steps):
@@ -51,7 +47,6 @@ def predict():
 
         logging.debug(f"Received ticker: {ticker}")
 
-        # Get the stock data from Yahoo Finance
         end_date = dt.datetime.now().strftime('%Y-%m-%d')
         start_date = (dt.datetime.now() - dt.timedelta(days=1104)).strftime('%Y-%m-%d')
         df = yf.get_data(ticker, start_date=start_date, end_date=end_date, interval='1d')
@@ -61,30 +56,24 @@ def predict():
         if 'close' not in df.columns:
             return jsonify({'error': 'Missing "close" column in the stock data'}), 400
 
-        # Use only the 'close' column
         df = df[['close']]
         df['close'] = scaler.fit_transform(np.expand_dims(df['close'].values, axis=1))
 
-        # Prepare data for prediction
         X_new = prepare_data(df, N_STEPS)
         if len(X_new) == 0:
             return jsonify({'error': 'Not enough data to make predictions'}), 400
 
         logging.debug(f"Prepared data for prediction: {X_new.shape}")
 
-        # Generate dates for predictions
         dates = pd.date_range(start=df.index[-1], periods=len(X_new) + 1)
 
-        # Make predictions
         predictions = model.predict(X_new)
         predictions = scaler.inverse_transform(predictions).flatten()
 
         logging.debug(f"Predictions: {predictions}")
 
-        # Convert predictions to list of floats
         predictions = predictions.tolist()
 
-        # Prepare the result with dates and predictions
         result = [{'date': date.strftime('%Y-%m-%d'), 'predicted_close': float(price)}
                   for date, price in zip(dates, predictions)]
 
