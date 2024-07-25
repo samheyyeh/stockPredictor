@@ -15,13 +15,11 @@ from keras.layers import Dense, LSTM, Dropout
 
 import matplotlib.pyplot as plt
 
-# Define constants
 N_STEPS = 7
 LOOKUP_STEPS = [1, 2, 3]
 DATE_NOW = tm.strftime('%Y-%m-%d')
 DATE_3_YEARS_BACK = (dt.date.today() - dt.timedelta(days=1104)).strftime('%Y-%m-%d')
 
-# Assume you have a list of stock tickers. Replace this with actual stock tickers.
 STOCK_TICKERS = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
 
 def PrepareData(df, days):
@@ -66,7 +64,6 @@ def GetTrainedModel(x_train, y_train):
     model.summary()
     return model
 
-# Store predictions for all stocks
 all_predictions = {}
 
 for STOCK in STOCK_TICKERS:
@@ -95,12 +92,10 @@ for STOCK in STOCK_TICKERS:
 
     all_predictions[STOCK] = stock_predictions
 
-    # Optional: Plotting each stock's predictions
     copy_df = init_df.copy()
     y_predicted = model.predict(x_train)
     y_predicted_transformed = scaler.inverse_transform(y_predicted).flatten()
 
-    # Adjust y_predicted_transformed to match the length of copy_df
     if len(y_predicted_transformed) < len(copy_df):
         y_predicted_transformed = np.concatenate([
             np.full(len(copy_df) - len(y_predicted_transformed), np.nan),
@@ -111,16 +106,12 @@ for STOCK in STOCK_TICKERS:
 
     copy_df[f'predicted_close'] = y_predicted_transformed
 
-    # Convert DATE_NOW to datetime.date object
     date_now = dt.datetime.strptime(DATE_NOW, '%Y-%m-%d').date()
 
-    # Calculate future dates
     future_dates = [date_now + dt.timedelta(days=i) for i in range(3)]
 
-    # Format future dates as strings
     future_dates_str = [d.strftime('%Y-%m-%d') for d in future_dates]
 
-    # Adding new rows to DataFrame
     new_rows = pd.DataFrame({
         'close': stock_predictions,
         'date': future_dates_str,
