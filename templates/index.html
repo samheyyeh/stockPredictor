@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Stock Price Predictor</h1>
+    <form id="ticker-form">
+        <label for="ticker">Enter Ticker Symbol:</label>
+        <input type="text" id="ticker" name="ticker" required>
+        <button type="submit">Predict</button>
+    </form>
+    <canvas id="predictionChart" width="400" height="200"></canvas>
+
+    <script>
+        let predictionChart; // Variable to hold the chart instance
+
+        document.getElementById('ticker-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const ticker = document.getElementById('ticker').value;
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ticker: ticker }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                const dates = data.predictions.map(pred => pred.date);
+                const prices = data.predictions.map(pred => pred.predicted_close);
+
+                const ctx = document.getElementById('predictionChart').getContext('2d');
+
+                // Destroy the previous chart instance if it exists
+                if (predictionChart) {
+                    predictionChart.destroy();
+                }
+
+                // Create a new chart instance
+                predictionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Predicted Close Prices',
+                            data: prices,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Price'
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                alert(data.error);
+            }
+        });
+    </script>
+</body>
+</html>
