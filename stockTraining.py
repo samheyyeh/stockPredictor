@@ -13,14 +13,13 @@ from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Dropout
 
-import matplotlib.pyplot as plt
-
 N_STEPS = 7
 LOOKUP_STEPS = [1, 2, 3]
 DATE_NOW = tm.strftime('%Y-%m-%d')
 DATE_3_YEARS_BACK = (dt.date.today() - dt.timedelta(days=1104)).strftime('%Y-%m-%d')
 
-STOCK_TICKERS = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
+with open("all_tickers.txt", "r") as f:
+    STOCK_TICKERS = f.read().splitlines()
 
 def PrepareData(df, days):
     df['future'] = df['close'].shift(-days)
@@ -91,46 +90,6 @@ for STOCK in STOCK_TICKERS:
         stock_predictions.append(round(float(predicted_price), 2))
 
     all_predictions[STOCK] = stock_predictions
-
-    copy_df = init_df.copy()
-    y_predicted = model.predict(x_train)
-    y_predicted_transformed = scaler.inverse_transform(y_predicted).flatten()
-
-    if len(y_predicted_transformed) < len(copy_df):
-        y_predicted_transformed = np.concatenate([
-            np.full(len(copy_df) - len(y_predicted_transformed), np.nan),
-            y_predicted_transformed
-        ])
-    elif len(y_predicted_transformed) > len(copy_df):
-        y_predicted_transformed = y_predicted_transformed[-len(copy_df):]
-
-    copy_df[f'predicted_close'] = y_predicted_transformed
-
-    date_now = dt.datetime.strptime(DATE_NOW, '%Y-%m-%d').date()
-
-    future_dates = [date_now + dt.timedelta(days=i) for i in range(3)]
-
-    future_dates_str = [d.strftime('%Y-%m-%d') for d in future_dates]
-
-    new_rows = pd.DataFrame({
-        'close': stock_predictions,
-        'date': future_dates_str,
-        'other_col1': [0, 0, 0],
-        'other_col2': [0, 0, 0]
-    }, index=future_dates_str)
-
-    copy_df = pd.concat([copy_df, new_rows])
-
-    plt.style.use('ggplot')
-    plt.figure(figsize=(16,10))
-    plt.plot(copy_df['close'][-150:].head(147), label=f'Actual price for {STOCK}')
-    plt.plot(copy_df['predicted_close'][-150:].head(147), linewidth=1, linestyle='dashed', label=f'Predicted price for {STOCK}')
-    plt.plot(copy_df['close'][-150:].tail(4), label=f'Predicted price for future 3 days')
-    plt.xlabel('days')
-    plt.ylabel('price')
-    plt.title(f'Predictions for {STOCK}')
-    plt.legend()
-    plt.show()
 
 model.save('stock_predict_model.h5')
 
